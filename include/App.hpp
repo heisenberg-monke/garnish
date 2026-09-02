@@ -28,6 +28,8 @@ namespace Garnish
     {
         Logger &m_logger;
 
+        void reportProgress(size_t iteration, const Tokens &inTokens, const Pairs &pairs) const;
+
     public:
         App();
 

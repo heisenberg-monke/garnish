@@ -2,6 +2,10 @@
 
 #include <iostream>
 
+#include <string>
+
+#include <chrono>
+
 namespace Garnish
 {
     class Stream
@@ -31,6 +35,8 @@ namespace Garnish
 
     };
 
+    using Clock = std::chrono::steady_clock;
+
     class Logger
     {
         bool m_debug = false;
@@ -38,6 +44,8 @@ namespace Garnish
         Stream m_out;
         Stream m_err;
         Stream m_log;
+
+        Clock::time_point m_begin;
     
         Logger();
         Logger(const Logger &) = delete;
@@ -54,5 +62,8 @@ namespace Garnish
         Stream &log();
         Stream &display();
         Stream &err();
+
+        void beginProfile();
+        void endProfile(const std::string &label);
     };
 }
