@@ -14,18 +14,6 @@
 
 namespace Garnish
 {
-    static inline void renderToken(const Pairs &pairs, uint32_t token, std::string &out)
-    {
-        if(token == pairs[token].left)
-        {
-            out += static_cast<char>(token);
-            return;
-        }
-        
-        renderToken(pairs, pairs[token].left, out);
-        renderToken(pairs, pairs[token].right, out);
-    }
-
     void App::reportProgress(size_t iteration, const Tokens &inTokens, const Pairs &pairs) const
     {
         m_logger.log() << "Iteration: " << iteration << '\n'
@@ -261,7 +249,7 @@ namespace Garnish
             m_logger.display() << token << " => \"";
 
             buffer.clear();
-            renderToken(pairs, token, buffer);
+            BPE::renderToken(pairs, token, buffer);
 
             for(char c : buffer)
             {

@@ -26,5 +26,6 @@ namespace Garnish
         static inline size_t PRELUDE_SIZE = 256;
         
         void loadPairs(const std::filesystem::path &path, Pairs &pairs, std::string &buf);
+        void renderToken(const Pairs &pairs, uint32_t token, std::string &out);
     }
 }

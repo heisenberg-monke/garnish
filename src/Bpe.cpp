@@ -46,7 +46,18 @@ namespace Garnish
                         throw std::runtime_error(std::format("{}: pair {}: Right subtoken is {} >= {}", pathStr, i, pairs[i].right, size));
                 }
             }
-                
+        }
+
+        void renderToken(const Pairs &pairs, uint32_t token, std::string &out)
+        {
+            if(token == pairs[token].left)
+            {
+                out += static_cast<char>(token);
+                return;
+            }
+            
+            renderToken(pairs, pairs[token].left, out);
+            renderToken(pairs, pairs[token].right, out);
         }
     }
 }
