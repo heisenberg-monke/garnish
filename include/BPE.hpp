@@ -23,6 +23,8 @@ namespace Garnish
 
     namespace BPE
     {
+        static inline size_t PRELUDE_SIZE = 256;
+        
         void loadPairs(const std::filesystem::path &path, Pairs &pairs, std::string &buf);
     }
 }
