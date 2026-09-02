@@ -7,10 +7,13 @@
 #include <cctype>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 #include <iterator>
 #include <thread>
 #include <vector>
+
+#include <format>
 
 namespace Garnish
 {
@@ -28,12 +31,13 @@ namespace Garnish
     {
         m_logger.display() << "Usage: \n"
                            << "-td <input.bpe> <output.dot>\n"
-                           << "-g <input.txt> [output.bpe]\n"
+                           << "-g <input.txt> [output.bpe] [output.tokens]\n"
                            << "-i <input.bpe>\n"
-                           << "-h \n";
+                           << "-h \n"
+                           << "-d <training.bpe> <input.tokens> [output.txt]\n";
     }
 
-    void App::generateBPE(const std::filesystem::path &input, const std::filesystem::path &output) const
+    void App::generateBPE(const std::filesystem::path &input, const std::filesystem::path &outputBPE, const std::filesystem::path &outputTokens, size_t reportFreq) const
     {
         FileSystem &fs = FileSystem::getFS();
         std::string text;
@@ -54,14 +58,14 @@ namespace Garnish
         const size_t hardwareThreads = std::max<uint>(1, std::thread::hardware_concurrency());
 
         size_t iteration = 0;
-        size_t reportFreq = 1;
 
         while(true)
         {
             if(++iteration % reportFreq == 0)
                 reportProgress(iteration, inTokens, pairs);
 
-            m_logger.beginProfile();
+            if(iteration % reportFreq == 0)
+                m_logger.beginProfile();
 
             const size_t tokenCount = inTokens.size();
 
@@ -105,9 +109,11 @@ namespace Garnish
                     freq[pair] += count;
             }
 
-            m_logger.endProfile("Collecting stats");
+            if(iteration % reportFreq == 0)
+                m_logger.endProfile("Collecting stats");
 
-            m_logger.beginProfile();
+            if(iteration % reportFreq == 0)
+                m_logger.beginProfile();
 
             if(freq.empty())
                 break;
@@ -123,7 +129,8 @@ namespace Garnish
             const auto &key = maxFreqIt->first;
             const auto &value = maxFreqIt->second;
 
-            m_logger.endProfile("Finding most frequent pairs");
+            if(iteration % reportFreq == 0)
+                m_logger.endProfile("Finding most frequent pairs");
 
             if(value <= 1)
                 break;
@@ -132,7 +139,8 @@ namespace Garnish
 
             pairs.emplace_back(key);
 
-            m_logger.beginProfile();
+            if(iteration % reportFreq == 0)
+                m_logger.beginProfile();
 
             const size_t replacementThreadCount = std::min(hardwareThreads, tokenCount);
 
@@ -201,14 +209,18 @@ namespace Garnish
                 );
             }
 
-            m_logger.endProfile("Replacing the frequent pair");
+            if(iteration % reportFreq == 0)
+                m_logger.endProfile("Replacing the frequent pair");
+                
             inTokens = std::move(outTokens);
         }
 
         reportProgress(iteration, inTokens, pairs);
-        fs.writeFile(output, pairs.data(), pairs.size());
+        fs.writeFile(outputBPE, pairs.data(), pairs.size());
+        fs.writeFile(outputTokens, inTokens.data(), inTokens.size());
 
-        m_logger.log() << "Generated " << output << '\n';
+        m_logger.log() << "Generated " << outputBPE << '\n';
+        m_logger.log() << "Generated " << outputTokens << "\n";
 
         // FreqVec freqVec;
 
@@ -275,5 +287,39 @@ namespace Garnish
 
             m_logger.display() << "\"\n";
         }
+    }
+
+    void App::decodeTokens(const std::filesystem::path &inputBPE, const std::filesystem::path &inputTokens, const std::filesystem::path &output) const
+    {
+        auto &fs = FileSystem::getFS();
+
+        Pairs pairs;
+        std::string buffer;
+
+        BPE::loadPairs(inputBPE, pairs, buffer);
+        buffer.clear();
+
+        fs.readFile(inputTokens, buffer);
+
+        if(buffer.size() % sizeof(uint32_t) != 0)
+            throw std::runtime_error(std::format("{}: File size in bytes ({}) should be divisible by {}", inputTokens.string(), buffer.size(), sizeof(uint32_t)));
+
+        const size_t tokenCount = buffer.size() / sizeof(uint32_t);
+        std::string text;
+
+        for(size_t i = 0; i < tokenCount; ++i)
+        {
+            uint32_t token;
+
+            std::memcpy(&token, buffer.data() + i * sizeof(uint32_t), sizeof(uint32_t));
+
+            if(token >= pairs.size())
+                throw std::runtime_error(std::format("{}: Token {} is outside the BPE table.", inputTokens.string(), token));
+
+            BPE::renderToken(pairs, token, text);
+        }
+
+        fs.writeFile(output, text.data(), text.size());
+        m_logger.log() << "Generated " << output << '\n';
     }
 }

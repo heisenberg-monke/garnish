@@ -34,8 +34,9 @@ namespace Garnish
         App();
 
         void showHelp() const;
-        void generateBPE(const std::filesystem::path &input, const std::filesystem::path &output) const;
+        void generateBPE(const std::filesystem::path &input, const std::filesystem::path &outputBPE, const std::filesystem::path &outputTokens, size_t reportFreq) const;
         void bpeToDot(const std::filesystem::path &input, const std::filesystem::path &output) const;
         void inspectBPE(const std::filesystem::path &input) const;
+        void decodeTokens(const std::filesystem::path &inputBPE, const std::filesystem::path &inputTokens, const std::filesystem::path &output) const;
     };
 }

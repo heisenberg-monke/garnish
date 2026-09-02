@@ -16,7 +16,8 @@ enum class Subcommand
     HELP,
     TO_DOT,
     GENERATE,
-    INSPECT
+    INSPECT,
+    DECODE
 };
 
 // void renderTokens(const Pairs &pairs, const Tokens &tokens)
@@ -50,7 +51,11 @@ int main(int argc, char **argv)
         Subcommand curr = Subcommand::NONE;
 
         std::filesystem::path input;
+        std::filesystem::path input2;
         std::filesystem::path output;
+        std::filesystem::path output2;
+
+        size_t reportFreq = 100;
 
         auto setCurrSubCmd = [&curr](Subcommand cmd)
         {
@@ -64,8 +69,14 @@ int main(int argc, char **argv)
         {
             std::string arg = argv[i];
 
-            if(arg == "--debug" || arg == "-D")
+            if(arg == "--debug")
+            {
                 debug = true;
+                reportFreq = (i+1 >= argc || argv[i+1][0] == '-') ? 100 : std::stoul(argv[++i]);
+
+                if(reportFreq == 0)
+                    throw std::runtime_error("Report freq must be greater than 0.");
+            }
 
             else if(arg == "-h")
                 setCurrSubCmd(Subcommand::HELP);
@@ -74,10 +85,10 @@ int main(int argc, char **argv)
             {
                 setCurrSubCmd(Subcommand::TO_DOT);
 
-                if(++i >= argc)
+                if(i+1 >= argc || argv[i+1][0] == '-')
                     throw std::runtime_error("No input file provided.");
 
-                input = argv[i++];
+                input = argv[++i];
                 output = (i >= argc || argv[i][0] == '-') ? "pairs.dot" : argv[i];
             }
 
@@ -85,21 +96,38 @@ int main(int argc, char **argv)
             {
                 setCurrSubCmd(Subcommand::GENERATE);
 
-                if(++i >= argc)
+                if(i+1 >= argc || argv[i+1][0] == '-')
                     throw std::runtime_error("No input file provided.");
 
-                input = argv[i++];
-                output = (i >= argc || argv[i][0] == '-') ? "pairs.bpe" : argv[i];
+                input = argv[++i];
+                output = (i+1 >= argc || argv[i+1][0] == '-') ? "pairs.bpe" : argv[++i];
+                output2 = (i+1 >= argc || argv[i+1][0] == '-') ? "tokens.tokens" : argv[++i];
             }
 
             else if(arg == "-i")
             {
                 setCurrSubCmd(Subcommand::INSPECT);
 
-                if(++i >= argc)
+                if(i+1 >= argc || argv[i+1][0] == '-')
                     throw std::runtime_error("No input file provided.");
 
-                input = argv[i];
+                input = argv[++i];
+            }
+
+            else if(arg == "-d")
+            {
+                setCurrSubCmd(Subcommand::DECODE);
+
+                if(i+1 >= argc || argv[i+1][0] == '-')
+                    throw std::runtime_error("No input files provided.");
+
+                input = argv[++i];
+
+                if(i+1 >= argc || argv[i+1][0] == '-')
+                    throw std::runtime_error("No input tokens provided.");
+
+                input2 = argv[++i];
+                output = (i+1 >= argc || argv[i+1][0] == '-') ? "output.txt" : argv[++i];
             }
 
             else
@@ -125,11 +153,15 @@ int main(int argc, char **argv)
                 break;
 
             case Subcommand::GENERATE:
-                app.generateBPE(input, output);
+                app.generateBPE(input, output, output2, reportFreq);
                 break;
 
             case Subcommand::INSPECT:
                 app.inspectBPE(input);
+                break;
+
+            case Subcommand::DECODE:
+                app.decodeTokens(input, input2, output);
                 break;
         }
         
