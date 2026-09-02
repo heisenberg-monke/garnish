@@ -40,7 +40,9 @@ namespace Garnish
     {
         m_logger.display() << "Usage: \n"
                            << "-td <input.bpe> <output.dot>\n"
-                           << "-g <input.txt> [output.bpe]\n";
+                           << "-g <input.txt> [output.bpe]\n"
+                           << "-i <input.bpe>\n"
+                           << "-h \n";
     }
 
     void App::generateBPE(const std::filesystem::path &input, const std::filesystem::path &output) const
