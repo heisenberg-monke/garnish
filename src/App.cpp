@@ -55,7 +55,7 @@ namespace Garnish
         Pairs pairs;
         Tokens inTokens;
 
-        for(uint32_t i = 0; i < 256; ++i)
+        for(uint32_t i = 0; i < BPE::PRELUDE_SIZE; ++i)
             pairs.emplace_back(i, 0);
 
         inTokens.reserve(text.length());
